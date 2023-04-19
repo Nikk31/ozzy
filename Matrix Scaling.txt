@@ -1,0 +1,62 @@
+%%cu
+#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+
+#define N 1024
+
+__global__ void scaleKernel(float* input, float* output, float scale)
+{
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (tid < N)
+    {
+        output[tid] = input[tid] * scale;
+    }
+}
+
+int main()
+{
+    float *h_input = (float*)malloc(N * sizeof(float));
+    float *h_output = (float*)malloc(N * sizeof(float));
+    float *d_input, *d_output;
+
+    cudaMalloc(&d_input, N * sizeof(float));
+    cudaMalloc(&d_output, N * sizeof(float));
+
+    for (int i = 0; i < N; ++i)
+    {
+        h_input[i] = (float)rand() / RAND_MAX;
+    }
+
+    cudaMemcpy(d_input, h_input, N * sizeof(float), cudaMemcpyHostToDevice);
+
+    float scale = 2.0;
+ 
+    printf("Input Matrix: \n");
+    for (int i = 0; i < N; ++i)
+    {
+        printf("%f ", h_input[i]);
+    }
+    printf("\n");
+    printf("\n");
+
+    scaleKernel<<<(N+255)/256, 256>>>(d_input, d_output, scale);
+
+    cudaMemcpy(h_output, d_output, N * sizeof(float), cudaMemcpyDeviceToHost);
+
+    printf("Output Matrix: \n");
+    for (int i = 0; i < N; ++i)
+    {
+        printf("%f ", h_output[i]);
+    }
+    printf("\n");
+
+
+    cudaFree(d_input);
+    cudaFree(d_output);
+    free(h_input);
+    free(h_output);
+
+    return 0;
+}
